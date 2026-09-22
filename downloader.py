@@ -642,14 +642,17 @@ class CustomBatchDownloader:
         return overall_stats
 
 
+DEFAULT_WLASL_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "WLASL_v0.3.json")
+
+
 class WLASLDownloader:
     def __init__(
         self,
-        json_path: str,
+        json_path: Optional[str] = None,
         output_dir: str = "videos",
         keep_failed: bool = False,
     ):
-        self.json_path = json_path
+        self.json_path = json_path or DEFAULT_WLASL_JSON
         self.output_dir = output_dir
         self.keep_failed = keep_failed
         self.dataset: List[Dict[str, Any]] = []

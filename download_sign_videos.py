@@ -23,7 +23,7 @@ DEFAULT_WORDS = [
     "name",
 ]
 
-DEFAULT_JSON_PATH = "/home/gbesh/coding/main_wlasl/WLASL/start_kit/WLASL_v0.3.json"
+DEFAULT_JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "WLASL_v0.3.json")
 
 
 def setup_logging(verbose: bool = False):

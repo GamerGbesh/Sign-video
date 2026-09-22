@@ -68,6 +68,7 @@ pip install flask requests
 ```text
 sign_videos/
 ├── README.md               # Complete repository documentation
+├── WLASL_v0.3.json         # Full WLASL 2,000-gloss dataset index file
 ├── app.py                  # Flask web backend (REST API, SSE streaming, video serving)
 ├── run_ui.sh               # Executable launcher for the Live Web UI
 ├── download_sign_videos.py # CLI executable for batch dataset downloads
@@ -163,7 +164,7 @@ python3 download_sign_videos.py --words "eat, drink, sleep"
 |---|---|---|
 | `--words` | 10 Curated Words | One or more words to download |
 | `--output-dir` | `videos` | Target directory where word folders will be saved |
-| `--dataset` | `/home/gbesh/coding/main_wlasl/WLASL/start_kit/WLASL_v0.3.json` | Path to WLASL JSON index file |
+| `--dataset` | `WLASL_v0.3.json` (in repo root) | Path to WLASL JSON index file |
 | `--verbose` | `False` | Enable detailed debug logging in console |
 
 Example specifying a custom output folder:
