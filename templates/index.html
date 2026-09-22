@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Video Downloader Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #1f2937; }
+    ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    .log-line-info { color: #93c5fd; }
+    .log-line-success { color: #86efac; font-weight: 500; }
+    .log-line-warning { color: #fde047; }
+    .log-line-error { color: #fca5a5; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans antialiased">
+  
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-gray-900/80 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            Sign Video Downloader
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Live Studio</span>
+          </h1>
+          <p class="text-xs text-gray-400">Download, trim & organize sign language clips by word</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <div id="connectionStatus" class="flex items-center space-x-2 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1.5 rounded-full">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="connectionText">Live Connected</span>
+        </div>
+        <button onclick="loadFolders()" class="text-xs text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          Refresh Library
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Top Grid: Input Panel & Live Progress -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column: Input Form (7 cols) -->
+      <div class="lg:col-span-7 space-y-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl shadow-sm p-5 space-y-4">
+          
+          <!-- Mode Tabs -->
+          <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+            <div class="flex space-x-2" role="tablist">
+              <button id="tabCardsBtn" onclick="switchTab('cards')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition">
+                Cards (Copy-Paste)
+              </button>
+              <button id="tabBulkBtn" onclick="switchTab('bulk')" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-gray-400 hover:text-gray-200 transition">
+                Bulk Text / File Upload
+              </button>
+            </div>
+            
+            <button onclick="loadSampleData()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              Fill Sample Data
+            </button>
+          </div>
+
+          <!-- TAB 1: Word Cards Copy-Paste -->
+          <div id="tabCards" class="space-y-4">
+            <p class="text-xs text-gray-400">
+              Enter sign words and paste multiple video URLs below. Each word will receive its own directory under <code class="text-indigo-300 font-mono">videos/&lt;word&gt;/</code>.
+            </p>
+            
+            <div id="cardsContainer" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+              <!-- Cards dynamically inserted here -->
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+              <button onclick="addWordCard()" class="text-xs font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-950/50 hover:bg-indigo-950 border border-indigo-800/60 px-3 py-2 rounded-lg transition flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add Another Word
+              </button>
+              <span class="text-xs text-gray-500" id="cardCountLabel">1 word queued</span>
+            </div>
+          </div>
+
+          <!-- TAB 2: Bulk Text or File Upload -->
+          <div id="tabBulk" class="space-y-4 hidden">
+            <p class="text-xs text-gray-400">
+              Paste bulk text or upload a <span class="text-indigo-300 font-mono">.txt, .csv, .json</span> file.
+            </p>
+
+            <!-- File Drag & Drop -->
+            <div class="border-2 border-dashed border-gray-700 hover:border-indigo-500 rounded-xl p-4 text-center cursor-pointer transition bg-gray-950/40" onclick="document.getElementById('fileInput').click()">
+              <input type="file" id="fileInput" class="hidden" accept=".txt,.csv,.json" onchange="handleFileUpload(event)">
+              <svg class="mx-auto h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <p class="text-xs text-gray-300 mt-1.5 font-medium">Click or drag a file to load</p>
+              <p class="text-[11px] text-gray-500 mt-0.5">Supports .txt, .csv, .json format</p>
+              <div id="uploadedFileName" class="text-xs text-emerald-400 mt-2 font-medium hidden"></div>
+            </div>
+
+            <!-- Bulk Textarea -->
+            <div>
+              <label class="block text-xs font-medium text-gray-300 mb-1.5">Or Paste Formatted Text:</label>
+              <textarea id="bulkTextInput" rows="8" placeholder="Example format:&#10;coffee:&#10;  https://www.youtube.com/watch?v=xyz 00:02-00:06&#10;  https://example.com/signs/coffee.mp4&#10;&#10;tea, https://www.youtube.com/watch?v=abc&#10;&#10;Or paste standard JSON." class="w-full text-xs font-mono bg-gray-950 border border-gray-800 rounded-lg p-3 text-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"></textarea>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="pt-3 border-t border-gray-800 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <button id="startBtn" onclick="startDownload()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-5 py-2.5 rounded-lg shadow-lg shadow-indigo-600/20 transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span>Start Downloading</span>
+              </button>
+              <button id="stopBtn" onclick="stopDownload()" class="bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 font-medium text-xs px-4 py-2.5 rounded-lg transition hidden flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <span>Stop</span>
+              </button>
+            </div>
+            
+            <div id="statusMessage" class="text-xs text-gray-400 truncate max-w-xs text-right">Ready to download</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Live Progress & Terminal (5 cols) -->
+      <div class="lg:col-span-5 space-y-4">
+        
+        <!-- Progress Summary Card -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3.5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-200 uppercase tracking-wider">Download Monitor</h2>
+            <span id="activeBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">Idle</span>
+          </div>
+
+          <!-- Overall Progress Bar -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs text-gray-400">
+              <span id="progressLabel">Overall Progress</span>
+              <span id="progressPercent" class="font-semibold text-indigo-400">0%</span>
+            </div>
+            <div class="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden">
+              <div id="progressBar" class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Stats Counters -->
+          <div class="grid grid-cols-4 gap-2 pt-1 text-center">
+            <div class="bg-gray-950/70 border border-gray-800/80 rounded-lg p-2">
+              <div id="statTotal" class="text-sm font-bold text-gray-200">0</div>
+              <div class="text-[10px] text-gray-500 uppercase">Total</div>
+            </div>
+            <div class="bg-gray-950/70 border border-gray-800/80 rounded-lg p-2">
+              <div id="statSuccess" class="text-sm font-bold text-emerald-400">0</div>
+              <div class="text-[10px] text-gray-500 uppercase">Saved</div>
+            </div>
+            <div class="bg-gray-950/70 border border-gray-800/80 rounded-lg p-2">
+              <div id="statCached" class="text-sm font-bold text-blue-400">0</div>
+              <div class="text-[10px] text-gray-500 uppercase">Cached</div>
+            </div>
+            <div class="bg-gray-950/70 border border-gray-800/80 rounded-lg p-2">
+              <div id="statFailed" class="text-sm font-bold text-rose-400">0</div>
+              <div class="text-[10px] text-gray-500 uppercase">Failed</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Console Log -->
+        <div class="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex flex-col shadow-sm">
+          <div class="bg-gray-950 px-4 py-2.5 border-b border-gray-800 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <span class="h-2 w-2 rounded-full bg-indigo-400"></span>
+              <span class="font-mono text-gray-400">Activity Log</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="clearLogs()" class="text-gray-500 hover:text-gray-300 text-[11px]">Clear</button>
+              <label class="flex items-center space-x-1 text-gray-500 text-[11px] cursor-pointer">
+                <input type="checkbox" id="autoscrollCheck" checked class="rounded border-gray-700 bg-gray-900 text-indigo-500">
+                <span>Auto-scroll</span>
+              </label>
+            </div>
+          </div>
+          <div id="logConsole" class="p-3 font-mono text-[11px] h-[300px] overflow-y-auto space-y-1 bg-gray-950/90 leading-relaxed">
+            <div class="text-gray-500 italic">System ready. Enter words and links, or click "Start Downloading".</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom Section: Video Library & Folder Explorer -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+        <div>
+          <h2 class="text-sm font-bold text-gray-100 flex items-center gap-2">
+            Downloaded Word Folders
+            <span id="folderCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-gray-800 text-gray-400">0 folders</span>
+          </h2>
+          <p class="text-xs text-gray-400">Browse saved videos in <code class="text-indigo-300 font-mono">videos/</code>, preview clips inline, or check sizes.</p>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <input type="text" id="filterFolderInput" oninput="filterFolders()" placeholder="Filter words..." class="text-xs bg-gray-950 border border-gray-800 rounded-lg px-3 py-1.5 text-gray-200 focus:outline-none focus:border-indigo-500">
+        </div>
+      </div>
+
+      <!-- Folder Grid -->
+      <div id="foldersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+        <div class="text-xs text-gray-500 italic col-span-full py-8 text-center">Loading library folders...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Video Preview Modal -->
+  <div id="videoModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="closeVideoModal(event)">
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl space-y-3 p-4" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between border-b border-gray-800 pb-2.5">
+        <div>
+          <h3 id="modalTitle" class="text-sm font-bold text-white">Video Preview</h3>
+          <p id="modalSub" class="text-xs text-gray-400 font-mono">path/to/video.mp4</p>
+        </div>
+        <button onclick="closeVideoModal()" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="bg-black rounded-xl overflow-hidden aspect-video flex items-center justify-center">
+        <video id="modalVideoPlayer" controls autoplay class="w-full h-full max-h-[420px] object-contain">
+          Your browser does not support video playback.
+        </video>
+      </div>
+
+      <div class="flex justify-end pt-1">
+        <button onclick="closeVideoModal()" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-1.5 rounded-lg border border-gray-700">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let cardCounter = 0;
+    let eventSource = null;
+    let allFolders = [];
+    let isDownloading = false;
+
+    // Initialize
+    document.addEventListener("DOMContentLoaded", () => {
+      addWordCard("coffee", "https://signstock.blob.core.windows.net/signschool/videos/SignSchool%20Love.mp4\nhttps://media.asldeafined.com/vocabulary/1468580623.2588.mp4");
+      initSSE();
+      loadFolders();
+    });
+
+    // Tab switching
+    function switchTab(tab) {
+      const cardsBtn = document.getElementById("tabCardsBtn");
+      const bulkBtn = document.getElementById("tabBulkBtn");
+      const cardsView = document.getElementById("tabCards");
+      const bulkView = document.getElementById("tabBulk");
+
+      if (tab === "cards") {
+        cardsBtn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition";
+        bulkBtn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-gray-400 hover:text-gray-200 transition";
+        cardsView.classList.remove("hidden");
+        bulkView.classList.add("hidden");
+      } else {
+        bulkBtn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white shadow-sm transition";
+        cardsBtn.className = "px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-gray-400 hover:text-gray-200 transition";
+        bulkView.classList.remove("hidden");
+        cardsView.classList.add("hidden");
+      }
+    }
+
+    // Dynamic Word Cards
+    function addWordCard(word = "", urls = "") {
+      cardCounter++;
+      const id = `card_${cardCounter}`;
+      const container = document.getElementById("cardsContainer");
+      const card = document.createElement("div");
+      card.id = id;
+      card.className = "bg-gray-950/80 border border-gray-800/90 rounded-xl p-3.5 space-y-2.5 transition hover:border-gray-700 relative";
+      card.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2 flex-1 mr-2">
+            <span class="text-xs font-bold text-indigo-400">#</span>
+            <input type="text" placeholder="Word (e.g. coffee, hello, book)" value="${escapeHtml(word)}" class="word-input w-full text-xs font-semibold bg-gray-900 border border-gray-800 rounded-lg px-2.5 py-1.5 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500">
+          </div>
+          <button onclick="removeCard('${id}')" class="text-gray-500 hover:text-rose-400 p-1 transition" title="Remove word">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </div>
+        <div>
+          <textarea rows="3" placeholder="Paste links (one per line)&#10;https://www.youtube.com/watch?v=... [optional 00:01-00:05]&#10;https://domain.com/sign.mp4" class="links-input w-full text-xs font-mono bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-indigo-500">${escapeHtml(urls)}</textarea>
+        </div>
+      `;
+      container.appendChild(card);
+      updateCardCount();
+    }
+
+    function removeCard(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+      updateCardCount();
+    }
+
+    function updateCardCount() {
+      const count = document.querySelectorAll("#cardsContainer > div").length;
+      document.getElementById("cardCountLabel").innerText = `${count} word${count === 1 ? '' : 's'} queued`;
+    }
+
+    function loadSampleData() {
+      const container = document.getElementById("cardsContainer");
+      container.innerHTML = "";
+      addWordCard("welcome", "https://www.youtube.com/watch?v=A5dihMAjeTE\nhttps://signstock.blob.core.windows.net/signschool/videos/db_uploads/SignSchool%20Welcome-tQBaI8oi6tw.mp4");
+      addWordCard("happy", "https://www.youtube.com/watch?v=kYJ5B8Ue3bU\nhttps://media.asldeafined.com/vocabulary/1468763560.7711.mp4");
+      appendLog("Loaded sample word configurations.", "info");
+    }
+
+    // File Upload handling
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const badge = document.getElementById("uploadedFileName");
+      badge.innerText = `Selected file: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+      badge.classList.remove("hidden");
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        document.getElementById("bulkTextInput").value = evt.target.result;
+        appendLog(`Loaded file '${file.name}' into bulk input.`, "info");
+      };
+      reader.readAsText(file);
+    }
+
+    // Server-Sent Events (SSE) for Real-time Streaming
+    function initSSE() {
+      if (eventSource) eventSource.close();
+
+      eventSource = new EventSource("/api/progress/stream");
+
+      eventSource.onopen = () => {
+        setConnectionStatus(true);
+      };
+
+      eventSource.onerror = () => {
+        setConnectionStatus(false);
+      };
+
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          handleLiveEvent(data);
+        } catch (err) {
+          console.error("SSE parse error:", err);
+        }
+      };
+    }
+
+    function setConnectionStatus(connected) {
+      const el = document.getElementById("connectionStatus");
+      const txt = document.getElementById("connectionText");
+      if (connected) {
+        el.className = "flex items-center space-x-2 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-3 py-1.5 rounded-full";
+        txt.innerText = "Live Connected";
+      } else {
+        el.className = "flex items-center space-x-2 text-xs text-amber-400 bg-amber-950/60 border border-amber-800/60 px-3 py-1.5 rounded-full";
+        txt.innerText = "Reconnecting...";
+      }
+    }
+
+    function handleLiveEvent(data) {
+      if (data.type === "init") {
+        setDownloadingUI(data.is_downloading);
+        if (data.recent_logs && data.recent_logs.length > 0) {
+          data.recent_logs.forEach(logItem => {
+            appendLog(logItem.message, logItem.level || (logItem.status === "failed" ? "error" : "info"));
+          });
+        }
+        return;
+      }
+
+      if (data.type === "start") {
+        setDownloadingUI(true);
+        resetProgressCounters(data.total_links);
+        appendLog(data.message, "info");
+      } else if (data.type === "word_start") {
+        appendLog(data.message, "info");
+        document.getElementById("activeBadge").innerText = `Downloading: ${data.word}`;
+        document.getElementById("activeBadge").className = "text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 animate-pulse";
+      } else if (data.type === "link_result") {
+        const lvl = data.status === "failed" ? "error" : (data.status === "already_exists" ? "info" : "success");
+        appendLog(data.message, lvl);
+
+        // Update counts
+        if (data.status === "success") {
+          incrementCounter("statSuccess");
+        } else if (data.status === "already_exists") {
+          incrementCounter("statCached");
+        } else if (data.status === "failed") {
+          incrementCounter("statFailed");
+        }
+
+        // Progress bar
+        if (data.progress_percent !== undefined) {
+          updateProgressBar(data.progress_percent);
+        }
+      } else if (data.type === "word_complete") {
+        appendLog(data.message, "success");
+        loadFolders();
+      } else if (data.type === "complete") {
+        setDownloadingUI(false);
+        updateProgressBar(100);
+        appendLog(data.message, "success");
+        document.getElementById("statusMessage").innerText = "Download complete!";
+        loadFolders();
+      } else if (data.type === "log") {
+        appendLog(data.message, data.level || "info");
+      }
+    }
+
+    function incrementCounter(id) {
+      const el = document.getElementById(id);
+      el.innerText = parseInt(el.innerText || "0") + 1;
+    }
+
+    function resetProgressCounters(total) {
+      document.getElementById("statTotal").innerText = total;
+      document.getElementById("statSuccess").innerText = "0";
+      document.getElementById("statCached").innerText = "0";
+      document.getElementById("statFailed").innerText = "0";
+      updateProgressBar(0);
+    }
+
+    function updateProgressBar(percent) {
+      const bar = document.getElementById("progressBar");
+      const label = document.getElementById("progressPercent");
+      bar.style.width = `${percent}%`;
+      label.innerText = `${percent}%`;
+    }
+
+    function appendLog(text, level = "info") {
+      if (!text) return;
+      const consoleEl = document.getElementById("logConsole");
+      const line = document.createElement("div");
+
+      let cssClass = "log-line-info";
+      let prefix = "[INFO]";
+      if (level === "error") {
+        cssClass = "log-line-error";
+        prefix = "[ERROR]";
+      } else if (level === "warning") {
+        cssClass = "log-line-warning";
+        prefix = "[WARN]";
+      } else if (level === "success") {
+        cssClass = "log-line-success";
+        prefix = "[SUCCESS]";
+      }
+
+      const timeStr = new Date().toLocaleTimeString();
+      line.className = cssClass;
+      line.innerHTML = `<span class="text-gray-600 text-[10px] select-none">${timeStr}</span> <span class="font-bold">${prefix}</span> ${escapeHtml(text)}`;
+      consoleEl.appendChild(line);
+
+      if (document.getElementById("autoscrollCheck").checked) {
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+      }
+    }
+
+    function clearLogs() {
+      document.getElementById("logConsole").innerHTML = "";
+    }
+
+    function setDownloadingUI(downloading) {
+      isDownloading = downloading;
+      const startBtn = document.getElementById("startBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const badge = document.getElementById("activeBadge");
+
+      if (downloading) {
+        startBtn.disabled = true;
+        startBtn.classList.add("opacity-50", "cursor-not-allowed");
+        stopBtn.classList.remove("hidden");
+        badge.innerText = "Processing...";
+        badge.className = "text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse";
+      } else {
+        startBtn.disabled = false;
+        startBtn.classList.remove("opacity-50", "cursor-not-allowed");
+        stopBtn.classList.add("hidden");
+        badge.innerText = "Idle";
+        badge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-800 text-gray-400";
+      }
+    }
+
+    // Trigger Download API Call
+    async function startDownload() {
+      const isCardsActive = !document.getElementById("tabCards").classList.contains("hidden");
+      let payload = {};
+
+      if (isCardsActive) {
+        const items = [];
+        const cardEls = document.querySelectorAll("#cardsContainer > div");
+        cardEls.forEach(card => {
+          const word = card.querySelector(".word-input").value.trim();
+          const rawUrls = card.querySelector(".links-input").value.trim().split("\n");
+          const urls = rawUrls.map(u => u.trim()).filter(u => u.length > 0);
+          if (word && urls.length > 0) {
+            items.push({ word, urls });
+          }
+        });
+
+        if (items.length === 0) {
+          alert("Please specify at least one word with at least one video link.");
+          return;
+        }
+        payload = { items };
+      } else {
+        const text = document.getElementById("bulkTextInput").value.trim();
+        if (!text) {
+          alert("Please paste formatted text or upload a file first.");
+          return;
+        }
+        payload = { text };
+      }
+
+      document.getElementById("statusMessage").innerText = "Starting download pipeline...";
+
+      try {
+        const res = await fetch("/api/download", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          appendLog(`Pipeline launched for ${data.total_words} words (${data.total_links} links)`, "info");
+          document.getElementById("statusMessage").innerText = `Downloading ${data.total_links} videos...`;
+        } else {
+          appendLog(data.message || "Failed to start download.", "error");
+          document.getElementById("statusMessage").innerText = "Error: " + data.message;
+        }
+      } catch (err) {
+        appendLog("Network error submitting download request: " + err, "error");
+      }
+    }
+
+    async function stopDownload() {
+      try {
+        const res = await fetch("/api/stop", { method: "POST" });
+        const data = await res.json();
+        appendLog(data.message, "warning");
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Load Folders & Video Library
+    async function loadFolders() {
+      try {
+        const res = await fetch("/api/folders");
+        const data = await res.json();
+        allFolders = data.folders || [];
+        document.getElementById("folderCountBadge").innerText = `${data.total_folders} folders (${data.total_videos} videos, ${data.total_size_mb} MB)`;
+        renderFolders(allFolders);
+      } catch (err) {
+        console.error("Error loading folders:", err);
+      }
+    }
+
+    function renderFolders(folders) {
+      const grid = document.getElementById("foldersGrid");
+      grid.innerHTML = "";
+
+      if (folders.length === 0) {
+        grid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-gray-500">No word folders created yet. Start a download above!</div>`;
+        return;
+      }
+
+      folders.forEach(f => {
+        const card = document.createElement("div");
+        card.className = "bg-gray-950/80 border border-gray-800 rounded-xl p-3.5 space-y-2 hover:border-gray-700 transition";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+              </span>
+              <h4 class="text-xs font-bold text-white uppercase tracking-wider">${escapeHtml(f.name)}</h4>
+            </div>
+            <span class="text-[11px] font-semibold text-emerald-400 bg-emerald-950/50 border border-emerald-800/40 px-2 py-0.5 rounded-full">
+              ${f.video_count} videos
+            </span>
+          </div>
+
+          <div class="text-[11px] text-gray-400 flex justify-between border-b border-gray-900 pb-2">
+            <span>Size: <strong class="text-gray-300">${f.size_mb} MB</strong></span>
+            <span class="text-gray-500">videos/${escapeHtml(f.name)}</span>
+          </div>
+
+          <!-- Video clips preview list -->
+          <div class="max-h-36 overflow-y-auto space-y-1 pr-1 pt-1">
+            ${f.videos.map(v => `
+              <div onclick="openVideoModal('${escapeHtml(f.name)}', '${escapeHtml(v.filename)}', '${escapeHtml(v.url)}')" class="flex items-center justify-between text-[11px] p-1.5 rounded-lg bg-gray-900 hover:bg-indigo-950/60 hover:text-indigo-300 cursor-pointer border border-gray-800/80 transition group">
+                <span class="font-mono text-gray-300 group-hover:text-indigo-200 truncate max-w-[160px] flex items-center gap-1">
+                  <svg class="w-3 h-3 text-gray-500 group-hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                  ${escapeHtml(v.filename)}
+                </span>
+                <span class="text-[10px] text-gray-500">${v.size_kb} KB</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function filterFolders() {
+      const q = document.getElementById("filterFolderInput").value.trim().toLowerCase();
+      if (!q) {
+        renderFolders(allFolders);
+        return;
+      }
+      const filtered = allFolders.filter(f => f.name.toLowerCase().includes(q));
+      renderFolders(filtered);
+    }
+
+    // Modal Video Preview
+    function openVideoModal(word, filename, videoUrl) {
+      document.getElementById("modalTitle").innerText = `Sign Clip: "${word}"`;
+      document.getElementById("modalSub").innerText = `videos/${word}/${filename}`;
+      const player = document.getElementById("modalVideoPlayer");
+      player.src = videoUrl;
+      player.play().catch(() => {});
+      document.getElementById("videoModal").classList.remove("hidden");
+    }
+
+    function closeVideoModal(e) {
+      const player = document.getElementById("modalVideoPlayer");
+      player.pause();
+      player.src = "";
+      document.getElementById("videoModal").classList.add("hidden");
+    }
+
+    function escapeHtml(str) {
+      if (!str) return "";
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[m]));
+    }
+  </script>
+</body>
+</html>
